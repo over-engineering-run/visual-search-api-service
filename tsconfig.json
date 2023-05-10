@@ -2,6 +2,7 @@
   "extends": "@tsconfig/node-lts",
   "include": ["src/**/*.ts"],
   "compilerOptions": {
+    "lib": ["dom"],
     "module": "nodenext",
     "moduleResolution": "esnext"
   }

@@ -1,34 +1,18 @@
 import { chromium } from "playwright";
 
-type File = {
-  /**
-   * File name
-   */
-  name: string;
-
-  /**
-   * File type
-   */
-  mimeType: string;
-
-  /**
-   * File content
-   */
-  buffer: Buffer;
-};
-
-type FileArg = string | string[] | File | File[];
-
 interface VisualMatchRecord {
   position: number;
   link: string;
   title: string;
   thumbnail: string;
+  source: string;
 }
 
-export async function executeVisualSearch(
-  file: FileArg
-): Promise<VisualMatchRecord[]> {
+type Props = {
+  url: string;
+};
+
+async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
   // open browser
   const browser = await chromium.launch();
 
@@ -42,10 +26,67 @@ export async function executeVisualSearch(
   await page.getByRole("button", { name: "Search by image" }).click();
 
   // click upload an image button and upload image
-  const fileChooserPromise = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "upload a file" }).click();
-  const fileChooser = await fileChooserPromise;
-  await fileChooser.setFiles(file);
+  await page.getByRole("textbox", { name: "Paste image link" }).fill(props.url);
+  await page.getByRole("textbox", { name: "Paste image link" }).press("Enter");
+
+  // wait for text:visual matches to be visible
+  await page.getByText("Visual matches").waitFor({ state: "visible" });
+
+  const rect = await page.locator("img.HqtXSc").boundingBox();
+  if (!rect) return [];
+
+  const sliders = await page.locator(".pklMG > input").all();
+  for (const slider of sliders) {
+    const label = await slider.getAttribute("aria-label");
+
+    if (!label) continue;
+
+    // top-left
+    if (label.includes("top-left")) {
+      const start = await slider.boundingBox();
+      if (!start) continue;
+
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(rect.x, rect.y);
+      await page.mouse.up();
+    }
+
+    // top-right
+    if (label.includes("top-right")) {
+      const start = await slider.boundingBox();
+      if (!start) continue;
+
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(rect.x + rect.width, rect.y);
+      await page.mouse.up();
+    }
+
+    // bottom-left
+    if (label.includes("bottom-left")) {
+      const start = await slider.boundingBox();
+      if (!start) continue;
+
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(rect.x, rect.y + rect.height);
+      await page.mouse.up();
+    }
+
+    // bottom-right
+    if (label.includes("bottom-right")) {
+      const start = await slider.boundingBox();
+      if (!start) continue;
+
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(rect.x + rect.width, rect.y + rect.height);
+      await page.mouse.up();
+    }
+  }
+
+  await page.getByText("Visual matches").waitFor({ state: "hidden" });
 
   // wait for text:visual matches to be visible
   await page.getByText("Visual matches").waitFor({ state: "visible" });
@@ -58,15 +99,13 @@ export async function executeVisualSearch(
     // scroll to item
     await item.scrollIntoViewIfNeeded();
 
-    // get link, title, and thumbnail
     const link = await item.getByRole("link").getAttribute("href");
     const title = await item.locator(".UAiK1e").textContent();
     const thumbnail = await item.locator(".wETe9b.jFVN1").getAttribute("src");
+    const source = await item.locator(".fjbPGe").textContent();
 
     // if any of them is missing, skip
-    if (!link || !title || !thumbnail) {
-      continue;
-    }
+    if (!link || !title || !thumbnail || !source) continue;
 
     // add to records
     records.push({
@@ -74,6 +113,7 @@ export async function executeVisualSearch(
       link,
       title,
       thumbnail,
+      source,
     });
   }
 
@@ -81,3 +121,4 @@ export async function executeVisualSearch(
 
   return records;
 }
+export default executeVisualSearch;
