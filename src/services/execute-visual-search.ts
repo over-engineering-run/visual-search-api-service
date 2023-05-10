@@ -14,7 +14,9 @@ type Props = {
 
 async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
   // open browser
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({
+    headless: process.env.NODE_ENV === "production",
+  });
 
   // open new tab
   const page = await browser.newPage();
@@ -35,11 +37,15 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
   const rect = await page.locator("img.HqtXSc").boundingBox();
   if (!rect) return [];
 
-  const sliders = await page.locator(".pklMG > input").all();
+  await page.mouse.move(rect.x, rect.y);
+  await page.mouse.down();
+
+  const sliders = await page.locator(".pklMG input").all();
   for (const slider of sliders) {
     const label = await slider.getAttribute("aria-label");
-
     if (!label) continue;
+
+    console.log(label);
 
     // top-left
     if (label.includes("top-left")) {
@@ -86,16 +92,18 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
     }
   }
 
-  await page.getByText("Visual matches").waitFor({ state: "hidden" });
+  await page.waitForResponse("**/LensWebStandaloneUi/*");
 
-  // wait for text:visual matches to be visible
   await page.getByText("Visual matches").waitFor({ state: "visible" });
+
+  await page.screenshot({ path: "screenshot.png" });
 
   // get all items
   const items = await page.locator(".G19kAf.ENn9pd").all();
 
   const records = [];
   for (const item of items) {
+    await item.waitFor({ state: "visible" });
     // scroll to item
     await item.scrollIntoViewIfNeeded();
 

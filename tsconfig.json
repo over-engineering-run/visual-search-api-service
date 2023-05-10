@@ -4,6 +4,7 @@
   "compilerOptions": {
     "lib": ["dom"],
     "module": "nodenext",
-    "moduleResolution": "esnext"
+    "moduleResolution": "nodenext",
+    "outDir": "./dist"
   }
 }

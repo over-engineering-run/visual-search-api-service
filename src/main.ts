@@ -20,7 +20,7 @@ app.get("/search/google-lens", async (req, res) => {
   return res.send({ visual_matches: records });
 });
 
-const port = 3000;
+const port = process.env.PORT || "8080";
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });

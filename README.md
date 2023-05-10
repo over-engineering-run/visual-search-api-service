@@ -1,17 +1,18 @@
-# event store cli
+# Visual Search API Service
 
-```
-APPEND EVENT <some-event>
-TO <some-stream>
-WITH ( id=1, value='some value' )
-```
+## Endpoints
 
-```typescript
-const event = jsonEvent({
-  type: "some-event",
-  data: {
-    id: 1,
-    value: "some value",
-  },
-});
+```json
+GET /search/google-lens?url=<url-str>
+{
+    "visual_matches": [
+        {
+            "position": "Integer - Position of the image",
+            "title": "String - Title of the image",
+            "link": "String - Source URL of the website containing the image",
+            "source": "String - Displayed name of the website containing the image",
+            "thumbnail": "String - URL to the image thumbnail"
+        }
+    ]
+}
 ```
