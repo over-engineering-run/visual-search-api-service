@@ -7,6 +7,9 @@ const app = express();
 const schema = z.object({
   url: z.string().url(),
 });
+
+app.use("/debug", express.static("debug"));
+
 app.get("/search/google-lens", async (req, res) => {
   const query = await schema.safeParseAsync(req.query);
   if (!query.success) {
@@ -21,6 +24,13 @@ app.get("/search/google-lens", async (req, res) => {
 });
 
 const port = process.env.PORT || "8080";
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+});
+process.on("SIGTERM", () => {
+  console.log("SIGTERM signal received: closing HTTP server");
+  server.close(() => {
+    console.log("HTTP server closed");
+    process.exit(0);
+  });
 });

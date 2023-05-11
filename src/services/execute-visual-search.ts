@@ -16,6 +16,11 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
   // open browser
   const browser = await chromium.launch({
     headless: process.env.NODE_ENV === "production",
+    args: [
+      "--disable-dev-shm-usage",
+      "--disable-setuid-sandbox",
+      "--no-sandbox",
+    ],
   });
 
   // open new tab
@@ -37,15 +42,18 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
   const rect = await page.locator("img.HqtXSc").boundingBox();
   if (!rect) return [];
 
-  await page.mouse.move(rect.x, rect.y);
+  // click center of image
+  await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2);
   await page.mouse.down();
+  await page.mouse.up();
+
+  await page.getByText("Visual matches").waitFor({ state: "visible" });
 
   const sliders = await page.locator(".pklMG input").all();
+  const offset = 20;
   for (const slider of sliders) {
     const label = await slider.getAttribute("aria-label");
     if (!label) continue;
-
-    console.log(label);
 
     // top-left
     if (label.includes("top-left")) {
@@ -54,29 +62,8 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
 
       await page.mouse.move(start.x, start.y);
       await page.mouse.down();
-      await page.mouse.move(rect.x, rect.y);
-      await page.mouse.up();
-    }
 
-    // top-right
-    if (label.includes("top-right")) {
-      const start = await slider.boundingBox();
-      if (!start) continue;
-
-      await page.mouse.move(start.x, start.y);
-      await page.mouse.down();
-      await page.mouse.move(rect.x + rect.width, rect.y);
-      await page.mouse.up();
-    }
-
-    // bottom-left
-    if (label.includes("bottom-left")) {
-      const start = await slider.boundingBox();
-      if (!start) continue;
-
-      await page.mouse.move(start.x, start.y);
-      await page.mouse.down();
-      await page.mouse.move(rect.x, rect.y + rect.height);
+      await page.mouse.move(rect.x - offset, rect.y - offset);
       await page.mouse.up();
     }
 
@@ -87,16 +74,17 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
 
       await page.mouse.move(start.x, start.y);
       await page.mouse.down();
-      await page.mouse.move(rect.x + rect.width, rect.y + rect.height);
+      await page.mouse.move(
+        rect.x + rect.width + offset,
+        rect.y + rect.height + offset
+      );
       await page.mouse.up();
     }
   }
 
-  await page.waitForResponse("**/LensWebStandaloneUi/*");
+  await page.waitForResponse((res) => res.url().includes("batchexecute"));
 
   await page.getByText("Visual matches").waitFor({ state: "visible" });
-
-  await page.screenshot({ path: "screenshot.png" });
 
   // get all items
   const items = await page.locator(".G19kAf.ENn9pd").all();
