@@ -2,7 +2,7 @@
 
 ## Endpoints
 
-```json
+```http
 GET /search/google-lens?url=<url-str>
 {
     "visual_matches": [
