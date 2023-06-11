@@ -8,8 +8,6 @@ const schema = z.object({
   url: z.string().url(),
 });
 
-app.use("/debug", express.static("debug"));
-
 app.get("/search/google-lens", async (req, res) => {
   const query = await schema.safeParseAsync(req.query);
   if (!query.success) {

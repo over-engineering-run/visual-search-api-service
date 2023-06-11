@@ -38,7 +38,6 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
 
   // wait for text:visual matches to be visible
   await page.getByText("Visual matches").waitFor({ state: "visible" });
-  await page.screenshot({ path: "debug/screenshot-1.png" });
 
   const rect = await page.locator("img.HqtXSc").boundingBox();
   if (!rect) return [];
@@ -47,10 +46,8 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
   await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2);
   await page.mouse.down();
   await page.mouse.up();
-  await page.screenshot({ path: "debug/screenshot-2.png" });
 
   await page.getByText("Visual matches").waitFor({ state: "visible" });
-  await page.screenshot({ path: "debug/screenshot-3.png" });
 
   const sliders = await page.locator(".pklMG input").all();
   const offset = 20;
@@ -68,7 +65,6 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
 
       await page.mouse.move(rect.x - offset, rect.y - offset);
       await page.mouse.up();
-      await page.screenshot({ path: "debug/screenshot-4.png" });
     }
 
     // bottom-right
@@ -83,16 +79,11 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
         rect.y + rect.height + offset
       );
       await page.mouse.up();
-      await page.screenshot({ path: "debug/screenshot-5.png" });
     }
   }
-  await page.screenshot({ path: "debug/screenshot-6.png" });
 
-  await page.waitForResponse((res) => res.url().includes("batchexecute"));
-  await page.screenshot({ path: "debug/screenshot-7.png" });
-
+  await page.getByText("Visual matches").waitFor({ state: "hidden" });
   await page.getByText("Visual matches").waitFor({ state: "visible" });
-  await page.screenshot({ path: "debug/screenshot-8.png" });
 
   // get all items
   const items = await page.locator(".G19kAf.ENn9pd").all();
@@ -100,7 +91,8 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
   const records = [];
   for (const item of items) {
     await item.waitFor({ state: "visible" });
-    // scroll to item
+
+    //scroll to item
     await item.scrollIntoViewIfNeeded();
 
     const link = await item.getByRole("link").getAttribute("href");
@@ -111,7 +103,7 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
     // if any of them is missing, skip
     if (!link || !title || !thumbnail || !source) continue;
 
-    // add to records
+    //add to records
     records.push({
       position: items.indexOf(item),
       link,
@@ -121,6 +113,7 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
     });
   }
 
+  // close browser
   await browser.close();
 
   return records;
