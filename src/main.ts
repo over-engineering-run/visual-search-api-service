@@ -1,12 +1,19 @@
 import executeVisualSearch from "./services/execute-visual-search.js";
 import express from "express";
 import z from "zod";
+import serveIndex from "serve-index";
 
 const app = express();
 
 const schema = z.object({
   url: z.string().url(),
 });
+
+app.use(
+  "/public",
+  express.static("public/videos"),
+  serveIndex("public/videos", { icons: true, view: "details" })
+);
 
 app.get("/search/google-lens", async (req, res) => {
   const query = await schema.safeParseAsync(req.query);
