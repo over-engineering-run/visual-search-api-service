@@ -12,6 +12,8 @@ type Props = {
   url: string;
 };
 
+const baseDir = "public/videos";
+
 async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
   console.log("Opening browser");
   const browser = await chromium.launch({
@@ -24,12 +26,18 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
   });
 
   const context = await browser.newContext({
-    recordVideo: { dir: "public/videos/" },
+    recordVideo: { dir: baseDir },
   });
 
   try {
     console.log("Opening page");
     const page = await context.newPage();
+
+    const video = page.video();
+    if (video) {
+      video.saveAs(`${baseDir}/${props.url}-${Date.now()}.webm`);
+      video.delete();
+    }
 
     console.log("Going to google");
     await page.goto("https://www.google.com");
