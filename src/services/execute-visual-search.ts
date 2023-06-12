@@ -1,3 +1,4 @@
+import path from "path";
 import { chromium } from "playwright";
 
 interface VisualMatchRecord {
@@ -35,7 +36,9 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
 
     const video = page.video();
     if (video) {
-      video.saveAs(`${baseDir}/${props.url}-${Date.now()}.webm`);
+      const url = new URL(props.url);
+      const { dir, name } = path.parse(path.join(baseDir, url.pathname));
+      video.saveAs(path.format({ dir, name, ext: ".webm" }));
       video.delete();
     }
 
@@ -53,68 +56,14 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
       .getByRole("textbox", { name: "Paste image link" })
       .press("Enter");
 
-    console.log("Waiting for image to be visible");
-    await page.locator(".bn6k9b").waitFor({ state: "visible" });
-
-    const rect = await page.locator("img.HqtXSc").boundingBox();
-    if (!rect) return [];
-
-    // click center of image
-    console.log("Clicking center of image");
-    await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2);
-    await page.mouse.down();
-    await page.mouse.up();
-
-    console.log('Waiting for "Visual matches" reload');
-    await page.getByText("Visual matches").waitFor({ state: "hidden" });
+    console.log('Waiting for "Visual matches" load');
     await page.getByText("Visual matches").waitFor({ state: "visible" });
 
-    const sliders = await page.locator(".pklMG input").all();
-    console.log("Adjusting sliders", sliders);
-    const offset = 20;
-    for (const slider of sliders) {
-      const label = await slider.getAttribute("aria-label");
-      if (!label) continue;
-
-      if (label.includes("top") && label.includes("left")) {
-        console.log("Adjusting slider", label);
-        const start = await slider.boundingBox();
-        if (!start) continue;
-
-        await page.mouse.move(start.x, start.y);
-        await page.mouse.down();
-
-        await page.mouse.move(rect.x - offset, rect.y - offset);
-        await page.mouse.up();
-      }
-
-      if (label.includes("bottom") && label.includes("right")) {
-        console.log("Adjusting slider", label);
-        const start = await slider.boundingBox();
-        if (!start) continue;
-
-        await page.mouse.move(start.x, start.y);
-        await page.mouse.down();
-        await page.mouse.move(
-          rect.x + rect.width + offset,
-          rect.y + rect.height + offset
-        );
-        await page.mouse.up();
-      }
-    }
-
-    console.log("Waiting for 'Visual matches' reload'");
-    try {
-      await page
-        .getByText("Visual matches")
-        .waitFor({ state: "hidden", timeout: 5000 });
-    } catch (e) {}
-    await page.getByText("Visual matches").waitFor({ state: "visible" });
+    await page.waitForLoadState("load");
 
     console.log("Getting all items");
+    const records: VisualMatchRecord[] = [];
     const items = await page.locator(".G19kAf.ENn9pd").all();
-
-    const records = [];
     for (const item of items) {
       await item.waitFor({ state: "visible" });
 
