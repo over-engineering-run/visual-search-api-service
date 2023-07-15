@@ -45,8 +45,16 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
     console.log("Going to google");
     await page.goto("https://www.google.com");
 
+    const accept = page.getByRole("button", { name: /accept/i });
+    if (await accept.isVisible()) {
+      await accept.click();
+      await accept.waitFor({ state: "hidden" });
+    }
+
     console.log("Clicking search by image button");
-    await page.getByRole("button", { name: "Search by image" }).click();
+    const image = page.getByRole("button", { name: /search by image/i });
+    await image.waitFor({ state: "visible" });
+    await image.click();
 
     console.log("Uploading image");
     await page
