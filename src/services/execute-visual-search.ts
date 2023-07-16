@@ -13,18 +13,16 @@ type Props = {
   url: string;
 };
 
+const launch = chromium.launch({
+  headless: process.env.NODE_ENV === "production",
+  args: ["--disable-dev-shm-usage", "--disable-setuid-sandbox", "--no-sandbox"],
+});
+
 const baseDir = "public/videos";
 
 async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
   console.log("Opening browser");
-  const browser = await chromium.launch({
-    headless: process.env.NODE_ENV === "production",
-    args: [
-      "--disable-dev-shm-usage",
-      "--disable-setuid-sandbox",
-      "--no-sandbox",
-    ],
-  });
+  const browser = await launch;
 
   const context = await browser.newContext({
     recordVideo: { dir: baseDir },
@@ -43,8 +41,9 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
     }
 
     console.log("Going to google");
-    await page.goto("https://www.google.com");
+    await page.goto("https://www.google.com?hl=en");
 
+    console.log("If there is a cookie consent, accept it");
     const accept = page.getByRole("button", { name: /accept/i });
     if (await accept.isVisible()) {
       await accept.click();
@@ -57,15 +56,9 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
     await image.click();
 
     console.log("Uploading image");
-    await page
-      .getByRole("textbox", { name: "Paste image link" })
-      .fill(props.url);
-    await page
-      .getByRole("textbox", { name: "Paste image link" })
-      .press("Enter");
-
-    console.log('Waiting for "Visual matches" load');
-    await page.getByText("Visual matches").waitFor({ state: "visible" });
+    const input = page.getByRole("textbox", { name: "Paste image link" });
+    await input.fill(props.url);
+    await input.press("Enter");
 
     await page.waitForLoadState("load");
 
@@ -75,7 +68,11 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
     for (const item of items) {
       await item.waitFor({ state: "visible" });
 
-      await item.scrollIntoViewIfNeeded();
+      try {
+        await item.scrollIntoViewIfNeeded();
+      } catch (e) {
+        console.log(item);
+      }
 
       const link = await item.getByRole("link").getAttribute("href");
       const title = await item.locator(".UAiK1e").textContent();
@@ -97,9 +94,8 @@ async function executeVisualSearch(props: Props): Promise<VisualMatchRecord[]> {
     console.error(e);
     return [];
   } finally {
-    console.log("Closing browser");
+    console.log("Closing Context");
     await context.close();
-    await browser.close();
   }
 }
 export default executeVisualSearch;

@@ -23,7 +23,7 @@ RUN yarn install --production=true
 
 
 # Final stage for app image
-FROM mcr.microsoft.com/playwright:next-jammy
+FROM mcr.microsoft.com/playwright:v1.35.0-jammy
 WORKDIR /app
 ENV NODE_ENV=production
 
